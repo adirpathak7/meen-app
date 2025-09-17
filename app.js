@@ -23,9 +23,9 @@ function jwtVerify(req, res, next) {
     const token = req.headers['authorization']
 
     if (!token) {
+        console.log('Token is required!');
         return res.status(403).json({ status: 403, message: 'Token is required!' })
     }
-    // console.log('the token: ' + token);
 
     try {
         const decoded = jwt.verify(token.split(' ')[1], SECRET_KEY)
@@ -138,9 +138,9 @@ app.post('/login', async (req, res) => {
     }
 });
 
-
+// ejs dashboard
 app.get('/dashboard', (req, res) => {
-    if (!req.session.token) {
+    if (!req.session.token || !req.session.user) {
         return res.redirect('/login')
     }
 
@@ -149,6 +149,7 @@ app.get('/dashboard', (req, res) => {
         token: req.session.token
     })
 })
+
 // protected route or api
 app.get('/profile', jwtVerify, async (req, res) => {
     try {
@@ -214,6 +215,7 @@ app.delete('/deleteProfileData', jwtVerify, async (req, res) => {
 app.get('/logout', (req, res) => {
     req.session.destroy(err => {
         if (err) {
+            console.log('An error occurres: ' + err);
             return res.status(500).send("Logout error.");
         }
         res.redirect('/login');
