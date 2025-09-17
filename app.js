@@ -19,16 +19,24 @@ mongoose.connect("mongodb://localhost:27017/meenPrc").then(() => {
 
 // jwt token verification
 function jwtVerify(req, res, next) {
+    console.log("Session token:", req.session.token);  // debug token from session
+    console.log("Auth header:", req.headers['authorization']);
     // token comes from request headers
-    const token = req.headers['authorization']
+    let token = null;
 
+    if (req.session.token) {
+        token = req.session.token;  // session token is just the token string
+    } else if (req.headers['authorization']) {
+        // Typically 'Bearer <token>'
+        token = req.headers['authorization'].split(' ')[1];
+    }
     if (!token) {
         console.log('Token is required!');
         return res.status(403).json({ status: 403, message: 'Token is required!' })
     }
 
     try {
-        const decoded = jwt.verify(token.split(' ')[1], SECRET_KEY)
+        const decoded = jwt.verify(token, SECRET_KEY)
         // console.log('decoded user: ' + req.user);
         req.user = decoded
         next()
@@ -127,8 +135,11 @@ app.post('/login', async (req, res) => {
         // Store token + user info in session
         req.session.token = token;
         req.session.user = {
+            userId: user._id,
             username: user.username,
-            email: user.email
+            email: user.email,
+            gender: user.gender,
+            password: user.password
         };
 
         res.redirect('/dashboard');
@@ -136,7 +147,7 @@ app.post('/login', async (req, res) => {
         console.log("An error occurred:-", err);
         res.status(500).render('login', { error: 'Server error!' });
     }
-});
+})
 
 // ejs dashboard
 app.get('/dashboard', (req, res) => {
@@ -166,8 +177,22 @@ app.get('/profile', jwtVerify, async (req, res) => {
     }
 })
 
+// for browser
+app.get('/updateProfileData', jwtVerify, async (req, res) => {
+    try {
+        const user = await Users.findById(req.session.user.userId).select('-password')
+        if (!user) {
+            res.status(404).send('User not found!')
+        }
+        res.render('updateProfileData', { user: user })
+    } catch (error) {
+        console.log('An error occurred: ' + error);
+        res.status(500).send('Server error: ' + error)
+    }
+})
+
 // update the profile data
-app.put('/updateProfileData', jwtVerify, async (req, res) => {
+app.post('/updateProfileData', jwtVerify, async (req, res) => {
     try {
         const { username, email, gender, password } = req.body
 
@@ -185,18 +210,24 @@ app.put('/updateProfileData', jwtVerify, async (req, res) => {
         const updatedUser = await Users.findByIdAndUpdate(req.user.id, updatedData, { new: true }).select('-password')
 
         if (!updatedUser) {
-            res.json({ status: 404, message: 'User not found' })
+            return res.status(404).send('User not found');
         }
 
-        res.json({ status: 200, message: 'Profile updated.', user: updatedUser })
+        // res.json({ status: 200, message: 'Profile updated.', user: updatedUser })
+        res.status(200).render('dashboard', { message: 'Profile updated.', user: updatedUser })
     } catch (err) {
         console.log('An error occurred: ' + err);
         res.json({ status: 500, message: 'An error occurred: ' + err.message })
     }
 })
 
+// for browser
+app.get('/deleteProfileData', (req, res) => {
+    res.render('deleteProfileData')
+})
+
 // delete the profile data
-app.delete('/deleteProfileData', jwtVerify, async (req, res) => {
+app.post('/deleteProfileData', jwtVerify, async (req, res) => {
     try {
         const user = await Users.findByIdAndDelete(req.user.id)
 
@@ -204,7 +235,9 @@ app.delete('/deleteProfileData', jwtVerify, async (req, res) => {
             res.json({ status: 404, message: 'User not found!' })
         }
 
-        res.json({ message: 'Account deleted successfully.' })
+        res.status(401).render('register', { error: 'Account deleted successfully.' });
+
+        // res.json({ message: 'Account deleted successfully.' })
     } catch (err) {
         console.log('An error occurred: ' + err);
         res.json({ message: 'An error: ' + err.message })

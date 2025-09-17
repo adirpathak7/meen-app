@@ -9,11 +9,18 @@
 <body>
     <h1>User Dashboard</h1>
 
-    <p>Welcome, <%= user.username %>
+    <p>
+        Welcome, <%= user.username %>
     </p>
-    <p>Your Email is: <%= user.email %>
+    <p>
+        Your Email is: <%= user.email %>
+    </p>
+    <p>
+        Gender: <%= user.gender %>
     </p>
 
+    <a href="/updateProfileData">Edit Profile</a> &nbsp;&nbsp;
+    <a href="/deleteProfileData">Delete Profile</a>&nbsp;&nbsp;
     <a href="/logout">Logout</a>
 </body>
 
