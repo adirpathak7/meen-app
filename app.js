@@ -8,7 +8,7 @@ const session = require('express-session')
 const multer = require('multer')
 const path = require('path')
 const { body, validator, validationResult } = require('express-validator');
-
+const cookieParser = require('cookie-parser')
 
 const app = express()
 const SECRET_KEY = 'qims38axkANamx8765ahkjam45aha4qb'
@@ -22,17 +22,22 @@ mongoose.connect("mongodb://localhost:27017/meenPrc").then(() => {
 
 // jwt token verification
 function jwtVerify(req, res, next) {
-    console.log("Session token:", req.session.token);  // debug token from session
+    console.log("Session token:", req.session.token)
     console.log("Auth header:", req.headers['authorization']);
     // token comes from request headers
     let token = null;
 
     if (req.session.token) {
-        token = req.session.token;  // session token is just the token string
+        token = req.session.token
     } else if (req.headers['authorization']) {
         // Typically 'Bearer <token>'
         token = req.headers['authorization'].split(' ')[1];
     }
+    const token2 = req.cookies.authToken;
+    if (!token) {
+        return res.redirect('/login');
+    }
+
     if (!token) {
         console.log('Token is required!');
         return res.status(403).json({ status: 403, message: 'Token is required!' })
@@ -176,8 +181,13 @@ app.post('/login', async (req, res) => {
             password: user.password,
             profilePic: user.profilePic,
             documents: user.documents
-        };
+        }
 
+        res.cookie("authToken", token, {
+            httpOnly: true,
+            secure: false,
+            maxAge: 60 * 60 * 1000
+        });
         res.redirect('/dashboard');
     } catch (err) {
         console.log("An error occurred:-", err);
@@ -186,11 +196,16 @@ app.post('/login', async (req, res) => {
 })
 
 // ejs dashboard
-app.get('/dashboard', (req, res) => {
+app.get('/dashboard', async (req, res) => {
     if (!req.session.token || !req.session.user) {
         return res.redirect('/login')
     }
+    const user = await Users.findById(req.user.id);
 
+    res.render('dashboard', {
+        user,
+        token: req.cookies.authToken
+    });
     res.render('dashboard', {
         user: req.session.user,
         token: req.session.token
@@ -282,6 +297,7 @@ app.post('/deleteProfileData', jwtVerify, async (req, res) => {
 
 // logout
 app.get('/logout', (req, res) => {
+    res.clearCookie("authToken");
     req.session.destroy(err => {
         if (err) {
             console.log('An error occurres: ' + err);
