@@ -5,6 +5,9 @@ const bcryptjs = require('bcryptjs')
 const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
 const session = require('express-session')
+const multer = require('multer')
+const path = require('path')
+const { body, validator, validationResult } = require('express-validator');
 
 
 const app = express()
@@ -46,6 +49,18 @@ function jwtVerify(req, res, next) {
     }
 }
 
+// multer configration
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/')
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + path.extname(file.originalname))
+    }
+})
+
+const uploads = multer({ storage: storage })
+
 // ejs setup
 app.set('view engine', 'ejs')
 
@@ -58,6 +73,8 @@ app.use(session({
     secret: 'qims38axkANamx8765ahkjam45aha4qb',
 }))
 
+// for fetch file from uploads folder
+app.use('/uploads', express.static('uploads'))
 // when you are working with backend only and api call will postman
 // app.use(express.urlencoded({ extended: true }))
 
@@ -68,28 +85,45 @@ app.get('/', (req, res) => {
 
 // for register view on browser
 app.get('/register', (req, res) => {
-    res.render('register')
+    res.render('register', { errors: [], oldInput: {} })
 })
 
 // simple add data
-app.post('/register', async (req, res) => {
-    try {
-        // for hashing password
-        const hashPassword = await bcryptjs.hash(req.body.password, 10)
+app.post('/register', uploads.fields([
+    { name: 'profilePic', maxCount: 1 },
+    { name: 'documents', maxCount: 3 }
+]),
+    [
+        body('username').notEmpty().withMessage('Enter username'),
+        body("email").isEmail().withMessage("Enter a valid email"),
+        body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters long"),
+        body("gender").notEmpty().withMessage("Gender is required")
+    ],
+    async (req, res) => {
+        try {
+            const errors = validationResult(req)
 
-        const user = new Users({
-            username: req.body.username,
-            email: req.body.email,
-            gender: req.body.gender,
-            password: hashPassword,
-        })
-        const newUser = await user.save()
-        res.render('success', { user: newUser })
-        // res.json({ message: "Registration successful", data: newUser });
-    } catch (err) {
-        console.log('An error occured:- ' + err);
-    }
-})
+            if (!errors.isEmpty()) {
+                return res.render('register', { errors: errors.array(), oldInput: req.body })
+            }
+            // for hashing password
+            const hashPassword = await bcryptjs.hash(req.body.password, 10)
+
+            const user = new Users({
+                username: req.body.username,
+                email: req.body.email,
+                gender: req.body.gender,
+                password: hashPassword,
+                profilePic: req.files['profilePic'] ? req.files['profilePic'][0].filename : null,
+                documents: req.files['documents'] ? req.files['documents'].map(file => file.filename) : []
+            })
+            const newUser = await user.save()
+            res.render('success', { user: newUser })
+            // res.json({ message: "Registration successful", data: newUser });
+        } catch (err) {
+            console.log('An error occured:- ' + err);
+        }
+    })
 
 // simple get all data
 app.get('/getAllUser', jwtVerify, async (req, res) => {
@@ -139,7 +173,9 @@ app.post('/login', async (req, res) => {
             username: user.username,
             email: user.email,
             gender: user.gender,
-            password: user.password
+            password: user.password,
+            profilePic: user.profilePic,
+            documents: user.documents
         };
 
         res.redirect('/dashboard');

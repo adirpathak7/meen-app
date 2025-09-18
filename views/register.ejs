@@ -9,7 +9,7 @@
 
 <body>
     <h1>Registration Form</h1>
-    <form action="/register" method="post">
+    <form action="/register" method="post" enctype="multipart/form-data">
         <label>Username: </label> <br>
         <input type="text" name="username"> <br><br>
         <label>Email: </label> <br>
@@ -17,6 +17,11 @@
         <label>Gender: </label> <br>
         Male <input type="radio" name="gender" value="Male">
         Female <input type="radio" name="gender" value="Female"> <br><br>
+
+        <label>Profile Picture: </label> <br>
+        <input type="file" name="profilePic"> <br><br>
+        <label>Documents: </label> <br>
+        <input type="file" name="documents" multiple> <br><br>
         <label>Password: </label> <br>
         <input type="password" name="password" id="password"> <br> <br>
         <label>Confirm Password: </label> <br>
@@ -24,6 +29,25 @@
 
         <button type="submit">Register</button>
     </form>
+
+    <% if(errors.length> 0) { %>
+        <div>
+            <% errors.forEach((err)=>{ %>
+                <p style="color: red;">
+                    <%= err.msg %>
+                </p>
+                <% }) %>
+        </div>
+        <% } %>
+            <!-- <% if (errors.length> 0) { %>
+        <ul style="color: red;">
+            <% errors.forEach(function(error) { %>
+                <li>
+                    <%= error.msg %>
+                </li>
+                <% }); %>
+        </ul>
+        <% } %> -->
 </body>
 
 </html>

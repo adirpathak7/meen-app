@@ -18,6 +18,23 @@
     <p>
         Gender: <%= user.gender %>
     </p>
+    <p>
+        Profile Picture: <img src="/uploads/<%= user.profilePic %>" alt="profilePic" width="50px">
+    </p>
+    <p>
+        Documents:
+        <% if (user.documents && user.documents.length> 0) { %>
+            <ul>
+                <% user.documents.forEach((doc) => { %>
+                    <li><a href="/uploads/<%= doc %>" target="_blank">
+                            <%= doc %>
+                        </a></li>
+                    <% }) %>
+            </ul>
+            <% } else { %>
+                No documents uploaded
+                <% } %>
+    </p>
 
     <a href="/updateProfileData">Edit Profile</a> &nbsp;&nbsp;
     <a href="/deleteProfileData">Delete Profile</a>&nbsp;&nbsp;
