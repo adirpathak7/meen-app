@@ -25,7 +25,7 @@
         Documents:
         <% if (user.documents && user.documents.length> 0) { %>
             <ul>
-                <% user.documents.forEach((doc) => { %>
+                <% user.documents.forEach((doc)=> { %>
                     <li><a href="/uploads/<%= doc %>" target="_blank">
                             <%= doc %>
                         </a></li>
@@ -35,7 +35,15 @@
                 No documents uploaded
                 <% } %>
     </p>
-
+    <p>Hobbies:
+        <% user.hobbies.forEach(hobby=> { %>
+            <span>
+                <%= hobby %>
+            </span>
+            <% }) %>
+    </p>
+    <p>Course: <%= user.course %>
+    </p>
     <a href="/updateProfileData">Edit Profile</a> &nbsp;&nbsp;
     <a href="/deleteProfileData">Delete Profile</a>&nbsp;&nbsp;
     <a href="/logout">Logout</a>

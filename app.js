@@ -120,7 +120,9 @@ app.post('/register', uploads.fields([
                 gender: req.body.gender,
                 password: hashPassword,
                 profilePic: req.files['profilePic'] ? req.files['profilePic'][0].filename : null,
-                documents: req.files['documents'] ? req.files['documents'].map(file => file.filename) : []
+                documents: req.files['documents'] ? req.files['documents'].map(file => file.filename) : [],
+                hobbies: Array.isArray(req.body.hobbies) ? req.body.hobbies : [req.body.hobbies],
+                course: req.body.course
             })
             const newUser = await user.save()
             res.render('success', { user: newUser })
@@ -180,7 +182,9 @@ app.post('/login', async (req, res) => {
             gender: user.gender,
             password: user.password,
             profilePic: user.profilePic,
-            documents: user.documents
+            documents: user.documents,
+            hobbies: user.hobbies,
+            course: user.course
         }
 
         res.cookie("authToken", token, {
